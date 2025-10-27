@@ -1,6 +1,6 @@
 ### ¿Que es un S3?
 Un servicio de almacenamiento de objetos (archivos) en la nube. Está diseñado para ser masivamente escalable, duradero y de bajo costo.
-#### 1. Crear una Interfaz para subir archivos
+### 1. Crear una Interfaz para subir archivos
 Tener un lugar donde subir los archivos. (Ej: una API con Express utilizando Multer para NodeJS)
 https://docs.nestjs.com/techniques/file-upload & [[Uploading Files NestJS]]
 
@@ -13,7 +13,7 @@ uploadFile() file: Express.Multer.File) {
 }
 ```
 
-#### 2. Create a Bucket
+### 2. Create a Bucket
 ![[create bucket s3.png]]
 
 Al crear un bucket por defecto viene configurado en **privado**.
@@ -22,7 +22,7 @@ Al crear un bucket por defecto viene configurado en **privado**.
 Y listo tenemos nuestro Bucket, pero **solo podemos acceder desde la cuenta que lo creamos**.
 ![[Pasted image 20251026145002.png]] 
 
-#### 3. Configurar Permisos con IAM 
+### 3. Configurar Permisos con IAM 
 Para conectar la app al bucket, creamos una identidad (un usuario o rol) y le asignamos permisos específicos.
 
 * **IAM (Identity and Access Management):** Es el servicio que gestiona las identidades (usuarios, roles) y los permisos en AWS.
@@ -54,7 +54,7 @@ Creamos la política y con un nombre y *la descripción es opcional.* ![[Pasted 
 Y listo creamos la política de acceso
 ![[Pasted image 20251027085832.png]]
 
-#### 4. Crear Usuario IAM
+### 4. Crear Usuario IAM
 Ahora creamos el usuario que va a utilizar nuestra API
 ![[Pasted image 20251027090017.png]]
 ![[Pasted image 20251027090342.png]]Y agregamos los permisos por política y seleccionamos la que creamos
@@ -71,19 +71,44 @@ Y generamos para un entorno local, en este caso nuestra API
 
 Generamos la clave de acceso y pegamos las credenciales en las variables de entorno de la API, y configuramos para crear un cliente mediante un provider
 ![[resources/excalidraw diagrams/Get Credentials IAM AWS for S3]]
+Creamos el Uploader provider, instalamos primeramente
+```powershell
+pnpm install @aws-sdk/client-s3
+```
 
-### 5. Servicio de Uploader
-Creamos un servicio para consumir el provider del cliente de S3
+```ts
+import { S3Client } from '@aws-sdk/client-s3';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class S3Provider {
+  constructor(private configService: ConfigService) {}
+
+  readonly s3Client = new S3Client({
+    region: this.configService.getOrThrow<string>('aws.region'),
+    credentials: {
+      accessKeyId: this.configService.getOrThrow<string>('aws.access.key'),
+      secretAccessKey: this.configService.getOrThrow<string>('aws.access.secretKey'),
+    },
+  });
+}
+```
+### 5. Configurar un Servicio de Uploader
+Instalamos la librería para manejar el almacenamiento de forma segura. 
+```powershell
+pnpm install @aws-sdk/lib-storage
+```
+Creamos un servicio para consumir el provider del cliente de S3, y creamos 
 ```ts
 @Injectable()
 export class UploadService {
   constructor(
-    @InjectRepository(File) private readonly fileRepository: Repository<File>,
     private readonly configService: ConfigService,
     private readonly s3Provider: S3Provider,
   ) {}
 
-  private readonly bucket = this.configService.getOrThrow<string>('aws.bucketName');
+  private readonly bucket = this.configService.getOrThrow<string>('aws.bucketName')
   private readonly s3Client = this.s3Provider.s3Client;
 
   async getFiles(): Promise<File[]> {
@@ -107,15 +132,6 @@ export class UploadService {
       const response = await upload.done();
       if (!response.Location) throw new Error('Failed to upload file');
 
-      const newFile = this.fileRepository.create({
-        title: file.originalname,
-        slug: key,
-        fileUrl: response.Location, 
-        mediaType: file.mimetype,
-      });
-
-      await this.fileRepository.save(newFile);
-
       return {
         url: response.Location,
         publicId: key,
@@ -126,8 +142,11 @@ export class UploadService {
     }
   }
 ```
-###### 📝 Nota: Utilizar mejor el `Upload` del `@aws-sdk/lib-storage` que el `PutObjectCommand`  de `@aws-sdk/client-s3```
-- Abstrae la lógica para evitar tener que manejar en casos de concurrencia, archivos pesados y para recomendado para Multer.
+##### 📝 Notas: 
+- Utiliza la fecha o algún generador random para que el nombre de los archivos sea único. 
+- Es buena practica comprimir multimedia antes de enviarlas al Bucket. (Ej: `npm sharper`)
+- Utilizar mejor el `Upload` del `@aws-sdk/lib-storage` que el `PutObjectCommand`  de `@aws-sdk/client-s3```
+	Abstrae la lógica para evitar tener que manejar en casos de concurrencia, archivos pesados y para recomendado para Multer.
 
 | **Característica**      | **PutObjectCommand (Doc)**  | **Upload (Tu Código)**                    |
 | ----------------------- | --------------------------- | ----------------------------------------- |
@@ -136,3 +155,45 @@ export class UploadService {
 | **Archivos Grandes**    | ⛔ **No** (Falla si > 5GB)   | ✅ **Sí** (Maneja Multipart Upload autom.) |
 | **Concurrencia**        | No                          | ✅ **Sí** (Sube partes en paralelo)        |
 | **Mejor para `Multer`** | No                          | ✅ **Sí (Recomendado)**                    |
+
+### 6. Pre-firmar URLs temporales
+Ya que el Bucket es privado debemos generar URLs publicas para que puedan ver el recurso, así que firmaremos URL temporalmente para que puedan acceder al recurso.
+
+Para firmarlas vamos a necesitar 2 cosas:
+- Bucket
+- Key (Ubicación del archivo)
+
+Creamos un método para firmar las URL
+```ts
+  async signUrl(key: string): Promise<string> {
+    const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });
+    const url = getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
+
+    return url;
+  }
+```
+
+Y lo podremos utilizar por ejemplo para obtener un archivo con su URL de preview.
+```ts
+@Injectable()
+export class UploadService {
+  constructor(
+    @InjectRepository(File) private readonly fileRepository: Repository<File>,
+    private readonly configService: ConfigService,
+    private readonly s3Provider: S3Provider,
+  ) {}
+
+  private readonly bucket = this.configService.getOrThrow<string>('aws.bucketName')
+  private readonly s3Client = this.s3Provider.s3Client;
+
+  async getFile(id: number): Promise<File> {
+    const file = await this.fileRepository.findOne({ where: { id: id } });
+    if (!file) throw new NotFoundException('File not found');
+
+    const signedUrl = await this.signUrl(file.key);
+    return {
+      ...file,
+      fileUrl: signedUrl,
+    };
+  }
+```

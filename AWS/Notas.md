@@ -1,0 +1,2 @@
+ - Actualizar a la par las dependencias de AWS a la par para evitar problemas de tipos. ![[Pasted image 20251027170734.png]]
+ - 

@@ -8,7 +8,7 @@
         "type": "tabs",
         "children": [
           {
-            "id": "dad1f94d2e16b45b",
+            "id": "0bd371cf97d2f027",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -19,20 +19,6 @@
               },
               "icon": "lucide-file",
               "title": "Uploading Files with S3"
-            }
-          },
-          {
-            "id": "0bd371cf97d2f027",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "NestJS/Uploading Files NestJS.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Uploading Files NestJS"
             }
           }
         ]
@@ -187,11 +173,15 @@
       "templater-obsidian:Templater": false
     }
   },
-  "active": "dad1f94d2e16b45b",
+  "active": "0bd371cf97d2f027",
   "lastOpenFiles": [
-    "NestJS/Uploading Files NestJS.md",
+    "AWS/Files/Config a CDN for S3 Bucket.md",
     "AWS/Files/Uploading Files with S3.md",
     "resources/excalidraw diagrams/Get Credentials IAM AWS for S3.md",
+    "NestJS/Uploading Files NestJS.md",
+    "AWS/Notas.md",
+    "Pasted image 20251027170734.png",
+    "Pasted image 20251027170731.png",
     "resources/images/Pasted Image 20251027105405_226.png",
     "resources/images/Pasted Image 20251027104851_669.png",
     "resources/images/Pasted Image 20251027104754_770.png",
@@ -201,8 +191,6 @@
     "resources/images/Pasted Image 20251027105300_427.png",
     "resources/excalidraw diagrams",
     "Pasted image 20251027104354.png",
-    "resources/images/Pasted image 20251027090748.png",
-    "resources/images/Pasted image 20251027092756.png",
     "Welcome.md",
     "resources/images",
     "resources",
