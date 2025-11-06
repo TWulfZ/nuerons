@@ -1,8 +1,6 @@
 [
-  "table-editor-obsidian",
   "obsidian-excalidraw-plugin",
-  "obsidian-tasks-plugin",
-  "obsidian-git",
-  "templater-obsidian",
-  "obsidian-discordrpc"
+  "obsidian-discordrpc",
+  "table-editor-obsidian",
+  "obsidian-git"
 ]

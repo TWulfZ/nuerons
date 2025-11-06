@@ -142,11 +142,11 @@ export class UploadService {
     }
   }
 ```
-##### 📝 Notas: 
-- Utiliza la fecha o algún generador random para que el nombre de los archivos sea único. 
-- Es buena practica comprimir multimedia antes de enviarlas al Bucket. (Ej: `npm sharper`)
-- Utilizar mejor el `Upload` del `@aws-sdk/lib-storage` que el `PutObjectCommand`  de `@aws-sdk/client-s3```
-	Abstrae la lógica para evitar tener que manejar en casos de concurrencia, archivos pesados y para recomendado para Multer.
+
+> [!note] Notas
+> - Utiliza la fecha o algún generador random para que el nombre de los archivos sea único. 
+> - Es buena practica comprimir multimedia antes de enviarlas al Bucket. (Ej: `npm sharper`)
+> - Utilizar mejor el `Upload` del `@aws-sdk/lib-storage` que el `PutObjectCommand`  de `@aws-sdk/client-s3`. Ya abstrae la lógica para evitar tener que manejar en casos de concurrencia, archivos pesados > y para recomendado para Multer.
 
 | **Característica**      | **PutObjectCommand (Doc)**  | **Upload (Tu Código)**                    |
 | ----------------------- | --------------------------- | ----------------------------------------- |
